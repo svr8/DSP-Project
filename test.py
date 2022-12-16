@@ -72,7 +72,6 @@ volume_frame.grid(row = 0, column=1, padx = 20)
 controls_frame = Frame(master_frame)
 controls_frame.grid(row=1, column=0)
 
-
 play_btn = Button(controls_frame, image = play_btn_img, borderwidth = 0, command=play)
 pause_btn = Button(controls_frame, image = pause_btn_img, borderwidth = 0, command = lambda: pause(paused))
 stop_btn = Button(controls_frame, image = stop_btn_img, borderwidth = 0, command = stop)
