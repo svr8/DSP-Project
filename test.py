@@ -52,7 +52,7 @@ def pause(is_paused):
 		paused = True
 
 def volume(x):
-	pygame.mixer.music.set_volume(volume_slider.get())
+	pygame.mixer.music.set_volume(1 - volume_slider.get())
 	current_vol = pygame.mixer.music.get_volume()
 
 master_frame = Frame(root)
@@ -88,6 +88,6 @@ my_menu.add_cascade(label= "Add songs", menu = add_song_menu)
 add_song_menu.add_command(label="Add a song", command=add_song)
 add_song_menu.add_command(label="Add multiple songs", command=add_mul_song)
 
-volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 1, command=volume, length=125)
+volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 0.5, command=volume, length=125)
 volume_slider.pack(pady=10)
 root.mainloop()
