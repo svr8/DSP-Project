@@ -7,6 +7,7 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 import wave
 import numpy as np
 import matplotlib.pyplot as plt
+import struct
 
 import librosa
 import librosa.display
@@ -21,7 +22,7 @@ root.title('Vocal Extractor')
 
 pygame.mixer.init()
 
-def clip16( x ):    
+def clipInt16( x ):    
   # Clipping for 16 bits
   if x > 32767:
     x = 32767
@@ -29,7 +30,7 @@ def clip16( x ):
     x = -32768
   else:
     x = x        
-  return (x)
+  return int(x)
 
 
 class FilteredSignal:
@@ -151,7 +152,8 @@ def generate_audio_plot(sig, sample_rate):
 
 def plot_and_play_filteredaudio(filteredAudio):
 
-	BLOCKLEN = 1000
+	print('lala1')
+	BLOCKLEN = 64
 	fig = plt.figure(1)
 	plot_sig = fig.add_subplot(211)
 	[g1] = plot_sig.plot([], [])
@@ -172,23 +174,37 @@ def plot_and_play_filteredaudio(filteredAudio):
 		output = True,
 		frames_per_buffer = 256)      # low latency so that plot and output audio are synchronized
 
+	print('lala2')
 	sliding_window_start = 0
 	sliding_window_end = BLOCKLEN
 	audio_output_format = 'h'*BLOCKLEN
+	
+	print('shape', filteredAudio.sig.shape)
+
 	while sliding_window_end < filteredAudio.LEN:
+		print('lala3')
+
+		# block_data = filteredAudio.sig[sliding_window_start:sliding_window_end]
+		g1.set_ydata(filteredAudio.sig[sliding_window_start:sliding_window_end])
+
+		print('lala4')
 		
-		block_data = filteredAudio.sig[sliding_window_start:sliding_window_end]
-		g1.set_ydata(block_data)
-		plt.pause(0.0001)
+		# outputList = []
+		# for i in range(sliding_window_start, sliding_window_end):
+		# 	outputList.append(clipInt16(filteredAudio.sig[i]))
+		# print('lala5')
 		
-		outputList = []
-		for i in range(BLOCKLEN):
-			outputList.append(block_data[i])
-		output_bytes = struct.pack('h'*BLOCKLEN, *outputList)
-		stream.write(audio_output_format, output_bytes)
+		# output_bytes = struct.pack('h'*BLOCKLEN, *outputList)
+		print('lala6')
+
+		# stream.write(output_bytes, BLOCKLEN)
+		print('lala7')
 
 		sliding_window_start += BLOCKLEN
 		sliding_window_end += BLOCKLEN
+
+		# plt.pause(0.0001)
+
 	
 	stream.stop_stream()
 	stream.close()
