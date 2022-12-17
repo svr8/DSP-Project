@@ -21,4 +21,5 @@ def displayWAVFileInfo(filename):
   print('signal length     :', length_signal)
   print('bytes per sample  :', width)
 
-displayWAVFileInfo('cat.wav')
+displayWAVFileInfo('output/background.wav')
+displayWAVFileInfo('output/foreground.wav')
