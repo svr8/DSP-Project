@@ -5,23 +5,119 @@ import tkinter.ttk as ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 import wave
-import wave
 import numpy as np
 import matplotlib.pyplot as plt
+
+import librosa
+import librosa.display
+import soundfile as sf
+import pyaudio
+
+
+plt.ion()
 
 root = Tk()
 root.title('Vocal Extractor')
 
 pygame.mixer.init()
 
-def generate_audio_plot(filename):
+def clip16( x ):    
+  # Clipping for 16 bits
+  if x > 32767:
+    x = 32767
+  elif x < -32768:
+    x = -32768
+  else:
+    x = x        
+  return (x)
 
-	# load audio file
-	signal_wave = wave.open(filename, 'r')
-	sample_rate = signal_wave.getframerate()
-	sig = np.frombuffer(signal_wave.readframes(sample_rate), dtype=np.int16)
 
-	# plt.ion()
+class FilteredSignal:
+	def __init__(self, signal, sample_rate, label):
+		self.sig = signal
+
+		filename = f'output/{label}.wav'
+		sf.write(f'output/{label}.wav', signal, sample_rate, 'PCM_24')
+
+		self.RATE = sample_rate
+
+		wf = wave.open(filename, 'rb')
+		self.WIDTH = wf.getsampwidth()
+		self.LEN = wf.getnframes()
+		self.CHANNELS = wf.getnchannels()
+		self.label = label
+
+		wf.close()
+	
+def filter_audio(filename):
+	y, sr = librosa.load(filename, duration=120)
+
+	start = 0
+	end = 25
+
+	# And compute the spectrogram magnitude and phase
+	S_full, phase = librosa.magphase(librosa.stft(y))
+
+	# Play back a 5-second excerpt with vocals
+	# Audio(data=y[start*sr:end*sr], rate=sr)
+
+	idx = slice(*librosa.time_to_frames([start, end], sr=sr))
+	# fig, ax = plt.subplots()
+	# img = librosa.display.specshow(librosa.amplitude_to_db(S_full[:, idx], ref=np.max),
+							#  y_axis='log', x_axis='time', sr=sr, ax=ax)
+	# fig.colorbar(img, ax=ax)
+
+	# We'll compare frames using cosine similarity, and aggregate similar frames
+	# by taking their (per-frequency) median value.
+	#
+	# To avoid being biased by local continuity, we constrain similar frames to be
+	# separated by at least 2 seconds.
+	#
+	# This suppresses sparse/non-repetetitive deviations from the average spectrum,
+	# and works well to discard vocal elements.
+	S_filter = librosa.decompose.nn_filter(S_full,
+										aggregate=np.median,
+										metric='cosine',
+										width=int(librosa.time_to_frames(2, sr=sr)))
+
+	# The output of the filter shouldn't be greater than the input
+	# if we assume signals are additive.  Taking the pointwise minimum
+	# with the input spectrum forces this.
+	S_filter = np.minimum(S_full, S_filter)
+
+	# We can also use a margin to reduce bleed between the vocals and instrumentation masks.
+	# Note: the margins need not be equal for foreground and background separation
+	margin_i, margin_v = 2, 10
+	power = 2
+
+	mask_i = librosa.util.softmask(S_filter,
+								margin_i * (S_full - S_filter),
+								power=power)
+
+	mask_v = librosa.util.softmask(S_full - S_filter,
+								margin_v * S_filter,
+								power=power)
+
+	# Once we have the masks, simply multiply them with the input spectrum
+	# to separate the components
+
+	S_foreground = mask_v * S_full
+	S_background = mask_i * S_full
+
+	y_foreground = librosa.istft(S_foreground * phase)
+	# Play back a 5-second excerpt with vocals
+	# Audio(data=y_foreground[start*sr:end*sr], rate=sr)
+
+	y_background = librosa.istft(S_background * phase)
+	# Play back a 5-second excerpt with instrumentals
+	# Audio(data=y_background[start*sr:end*sr], rate=sr)
+
+	background_signal = FilteredSignal(y_background, sr, 'background')
+	foreground_signal = FilteredSignal(y_foreground, sr, 'foreground')
+
+	return foreground_signal, background_signal
+
+def generate_audio_plot(sig, sample_rate):
 
 	fig = plt.figure(1)
 
@@ -51,8 +147,53 @@ def generate_audio_plot(filename):
 	# placing the toolbar on the Tkinter window
 	canvas.get_tk_widget().grid(row=0, column=0)
 
-	signal_wave.close()
 	plt.ioff()
+
+def plot_and_play_filteredaudio(filteredAudio):
+
+	BLOCKLEN = 1000
+	fig = plt.figure(1)
+	plot_sig = fig.add_subplot(211)
+	[g1] = plot_sig.plot([], [])
+
+	g1.set_xdata(range(BLOCKLEN))
+	plt.ylim(-32000, 32000)
+	plt.xlim(0, BLOCKLEN)
+
+	# Open the audio output stream
+	p = pyaudio.PyAudio()
+
+	PA_FORMAT = p.get_format_from_width(filteredAudio.WIDTH)
+	stream = p.open(
+		format = PA_FORMAT,
+		channels = filteredAudio.CHANNELS,
+		rate = filteredAudio.RATE,
+		input = False,
+		output = True,
+		frames_per_buffer = 256)      # low latency so that plot and output audio are synchronized
+
+	sliding_window_start = 0
+	sliding_window_end = BLOCKLEN
+	audio_output_format = 'h'*BLOCKLEN
+	while sliding_window_end < filteredAudio.LEN:
+		
+		block_data = filteredAudio.sig[sliding_window_start:sliding_window_end]
+		g1.set_ydata(block_data)
+		plt.pause(0.0001)
+		
+		outputList = []
+		for i in range(BLOCKLEN):
+			outputList.append(block_data[i])
+		output_bytes = struct.pack('h'*BLOCKLEN, *outputList)
+		stream.write(audio_output_format, output_bytes)
+
+		sliding_window_start += BLOCKLEN
+		sliding_window_end += BLOCKLEN
+	
+	stream.stop_stream()
+	stream.close()
+	p.terminate()
+
 
 def add_song():
 	song = filedialog.askopenfilename(initialdir='songs/', title="Choose a song", filetypes=(("mp3 Files", "*.mp3"), ("WAV Files", "*.wav")))
@@ -73,9 +214,13 @@ def play():
 	song = f'songs/{song}'
 
 	try:
-		pygame.mixer.music.load(song)
-		pygame.mixer.music.play(loops=0)
-		generate_audio_plot(song)
+		foreground_sig, background_sig = filter_audio(song)
+		
+		filtered_filename = f'output/{foreground_sig.label}.wav'
+		# pygame.mixer.music.load(filtered_filename)
+		# pygame.mixer.music.play(loops=0)
+		# generate_audio_plot(foreground_sig.sig, foreground_sig.RATE)
+		plot_and_play_filteredaudio(foreground_sig)
 
 	except FileNotFoundError:
 		print("Song not added")
