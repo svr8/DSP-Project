@@ -1,2 +1,4 @@
 tk
 pygame
+librosa
+numpy
