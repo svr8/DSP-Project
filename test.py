@@ -4,25 +4,38 @@ from tkinter import filedialog
 import tkinter.ttk as ttk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+import wave
+import wave
+import numpy as np
+import matplotlib.pyplot as plt
 
 root = Tk()
 root.title('Vocal Extractor')
 
 pygame.mixer.init()
 
-def generate_audio_plot():
-	# the figure that will contain the plot
-	fig = Figure(figsize = (5, 5),
-				dpi = 100)
+def generate_audio_plot(filename):
 
-	# list of squares
-	y = [i**2 for i in range(101)]
+	# load audio file
+	signal_wave = wave.open(filename, 'r')
+	sample_rate = signal_wave.getframerate()
+	sig = np.frombuffer(signal_wave.readframes(sample_rate), dtype=np.int16)
 
-	# adding the subplot
-	plot1 = fig.add_subplot(111)
+	# plt.ion()
 
-	# plotting the graph
-	plot1.plot(y)
+	fig = plt.figure(1)
+
+	# adding the energy subplot
+	plot_a = fig.add_subplot(211)
+	plot_a.plot(sig)
+	plot_a.set_xlabel('sample rate * time')
+	plot_a.set_ylabel('energy')
+
+	# adding the frequency subplot
+	plot_b = plt.subplot(212)
+	plot_b.specgram(sig, NFFT=1024, Fs=sample_rate, noverlap=900)
+	plot_b.set_xlabel('Time')
+	plot_b.set_ylabel('Frequency')
 
 	# create wrapper frame
 	wrapper_frame = Frame(root)
@@ -37,6 +50,25 @@ def generate_audio_plot():
 
 	# placing the toolbar on the Tkinter window
 	canvas.get_tk_widget().grid(row=0, column=0)
+
+	[g1] = plt.plot([], [])
+	g1.set_xdata(range(BLOCKLEN))
+	plt.ylim(-32000, 32000)
+	plt.xlim(0, BLOCKLEN)
+	input_bytes = wf.readframes(BLOCKLEN)
+
+	while len(input_bytes) >= BLOCKLEN * WIDTH:
+		# Convert binary data to number sequence (tuple)
+		signal_block = struct.unpack('h' * BLOCKLEN, input_bytes)
+
+		g1.set_ydata(signal_block)
+		plt.pause(0.0001)
+
+		# Get block of samples from wave file
+		input_bytes = wf.readframes(BLOCKLEN)
+	
+	wf.close()
+	plt.ioff()
 
 def add_song():
 	song = filedialog.askopenfilename(initialdir='songs/', title="Choose a song", filetypes=(("mp3 Files", "*.mp3"), ("WAV Files", "*.wav")))
@@ -59,8 +91,8 @@ def play():
 	try:
 		pygame.mixer.music.load(song)
 		pygame.mixer.music.play(loops=0)
-		generate_audio_plot()
-		
+		generate_audio_plot(song)
+
 	except FileNotFoundError:
 		print("Song not added")
 
