@@ -77,5 +77,5 @@ y_background = librosa.istft(S_background * phase)
 Audio(data=y_background[start*sr:end*sr], rate=sr)
 
 import soundfile as sf
-sf.write('output/background.wav', y_background, 48000, 'PCM_24')
-sf.write('output/foreground.wav', y_foreground, 48000, 'PCM_24')
+sf.write('output/background.wav', y_background, sr, 'PCM_24')
+sf.write('output/foreground.wav', y_foreground, sr, 'PCM_24')

@@ -51,7 +51,7 @@ def generate_audio_plot(filename):
 	# placing the toolbar on the Tkinter window
 	canvas.get_tk_widget().grid(row=0, column=0)
 
-	wf.close()
+	signal_wave.close()
 	plt.ioff()
 
 def add_song():
