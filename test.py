@@ -51,22 +51,6 @@ def generate_audio_plot(filename):
 	# placing the toolbar on the Tkinter window
 	canvas.get_tk_widget().grid(row=0, column=0)
 
-	[g1] = plt.plot([], [])
-	g1.set_xdata(range(BLOCKLEN))
-	plt.ylim(-32000, 32000)
-	plt.xlim(0, BLOCKLEN)
-	input_bytes = wf.readframes(BLOCKLEN)
-
-	while len(input_bytes) >= BLOCKLEN * WIDTH:
-		# Convert binary data to number sequence (tuple)
-		signal_block = struct.unpack('h' * BLOCKLEN, input_bytes)
-
-		g1.set_ydata(signal_block)
-		plt.pause(0.0001)
-
-		# Get block of samples from wave file
-		input_bytes = wf.readframes(BLOCKLEN)
-	
 	wf.close()
 	plt.ioff()
 
