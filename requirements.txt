@@ -2,3 +2,7 @@ tk
 pygame
 librosa
 numpy
+matplotlib
+pyaudio
+wave
+struct
