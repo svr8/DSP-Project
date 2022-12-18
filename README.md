@@ -14,16 +14,16 @@
     <!-- TODO update demo link -->
     <a href="https://docs.rehost.in/#/getting-started/quickstart"><strong><u>View Live Demo »</u></strong></a>
     <br />
-    <a href="mailto:si2152@nyu.edu">Chat with Authors</a>
+    <a href="mailto:si2152@nyu.edu">Siddhanth Iyer (si2152)</a>
     ·
-    <a href="https://librosa.org/doc/latest/index.html">Librosa Docs</a>
+    <a href="mailto:sv2270@nyu.edu">Shikhar Vaish (sv2270)</a>
   </p>
 </div>
 
 <p align="center">
     <img src="images/demo.png" alt="Logo" width="400" height="300">
 </p>
-<!-- ABOUT THE PROJECT -->
+
 ## About The Project
 
 This is a submission to the course Digital Signal Processing Laboratory ECE-GY 6183 as the final project. The goal was to use signal processing techniques learned in the course and build something real-life oriented out of it. The appliction presented here exectues predefined audio processing algrotihms to extract vocal and instrumental audio signals from a song. It assumes that the input audio file provided is a musical audio with human voices.
