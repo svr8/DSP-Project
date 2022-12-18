@@ -26,7 +26,7 @@
 
 ## About The Project
 
-This is a submission to the course Digital Signal Processing Laboratory ECE-GY 6183 as the final project. The goal was to use signal processing techniques learned in the course and build something real-life oriented out of it. The appliction presented here exectues predefined audio processing algrotihms to extract vocal and instrumental audio signals from a song. It assumes that the input audio file provided is a musical audio with human voices.
+This is a submission to the course Digital Signal Processing Laboratory ECE-GY 6183 as the final project. The goal was to use signal processing techniques learned in the course and build something real-life oriented out of it. The application presented here executes a predefined audio processing algorithm to extract vocal and instrumental audio signals from a song. It assumes that the input audio file provided is musical audio with human voices.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -59,7 +59,7 @@ Python | [Official Page](https://www.python.org/downloads/)
 <p align="center">
     <img src="images/load-song.png" alt="Logo" width="550" height="380">
 </p>
-In the application menu, go to `Add Songs > Add a song` to open the file chooser pop-up. Select the file present on your computer to load it in the application. Intuitively, you can choose `Add Songs > Add multiple songs` to load multiple audio files.
+In the application menu, go to `Add Songs > Add a song` to open the file chooser pop-up.  Select the file present on your computer to load it into the application. Intuitively, you can choose `Add Songs > Add multiple songs` to load multiple audio files.
 
 ### Audio Control
 
@@ -73,11 +73,11 @@ You can use the intuitive control buttons to play, pause, and, stop playing the 
 <p align="center">
     <img src="images/extract-song.png" alt="Logo" width="550" height="380">
 </p>
-First, click on the audio track that you want to process. Next, click on the microphone icon to extract vocals and instrumentals of the selected audio file in separate files.
+First, click on the audio track that you want to process. Next, click on the microphone icon to extract the vocals and instrumentals of the selected audio file in separate files.
 
-It takes a few seconds to process the audo file, depending on the length of audio track. Finally, you will see 2 new audio files saved as `<audio file name>_instrumentals.wav` and `<audio file name>_vocals.wav` in the `songs/` directory. 
+It takes a few seconds to process the audio file, depending on the length of the audio track. Finally, you will see 2 new audio files saved as `<audio file name>_instrumentals.wav` and `<audio file name>_vocals.wav` in the `songs/` directory. 
 
-These audio tracks would be loaded in the application directly after processing. You can see listen to them directly through the application.
+These audio tracks would be loaded into the application directly after processing. You can see listen to them directly through the application.
 
 ### Real-Time Audio Visualization
 
@@ -90,13 +90,13 @@ Click the wave icon to visualize audio frequency in real-time.
 
 ### Audio Extraction
 
-The application uses `librosa` library and apply 2 different softmask filters the on the audio data, for instrumental and vocals respectively.
+The application uses `librosa` library and applies 2 different softmask filters on the audio data, for instrumental and vocals respectively.
 
 The final output is processed and saved in different files.
 
 ### Real-Time Audio Visualization
 
-The application uses `matplotlib` and simple sliding window algorithm to load the binary data in blocks of fix sizes. These batches are passed to `pyaudio` stream connected that plays the audio to the output device meanwhile we get matplotlib to read the audio data and plot the signals in real-time.
+The application uses `matplotlib` and a simple sliding window algorithm to load the binary data in blocks of fix sizes. These batches are passed to `pyaudio` stream connected that plays the audio to the output device meanwhile we get matplotlib to read the audio data and plot the signals in real-time.
 
 
 ## Authors
