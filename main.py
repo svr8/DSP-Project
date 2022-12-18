@@ -16,6 +16,9 @@ import wave
 from matplotlib import pyplot
 from os import path
 import os
+from pathlib import Path
+import time
+import psutil
 
 root = Tk()
 root.title('Vocal Extractor')
@@ -29,9 +32,11 @@ on_closing
 '''
 def on_closing():
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        root.destroy()
-        root.quit()
-        os._exit(0)
+    	pygame.mixer.music.unload()
+    	root.destroy()
+    	root.quit()
+    	os._exit(0)
+    	
 
 '''
 	loads user-selected song
@@ -84,7 +89,6 @@ def extract():
 
 	y, sr = librosa.load(song)
 	S_full, phase = librosa.magphase(librosa.stft(y))
-	sf.write(song, y, sr)
 
 	S_filter = librosa.decompose.nn_filter(S_full,
                                        aggregate=np.median,
@@ -121,8 +125,8 @@ def extract():
 	stop()
 
 	# load the processed audio files in the application
-	# vocal_file = vocal_file.split('/')[-1]
-	# instr_file = instr_file.split('/')[-1]
+	vocal_file = vocal_file.split('/')[-1]
+	instr_file = instr_file.split('/')[-1]
 	# listbox.insert(END, vocal_file)
 	# listbox.insert(END, instr_file)
 	if vocal_file not in listbox.get(0, "end"):
@@ -165,8 +169,13 @@ def graph():
 	if song[-4:] == '.mp3':
 		return
 
-	wavfile = f'songs/{songname}'
+	
+
+	wavfile = f'songs/graph_{songname}'
 	print('Name of wave file: %s' % wavfile)
+
+	y, sr = librosa.load(song)
+	sf.write(wavfile, y, sr)
 
 	# Open wave file
 	wf = wave.open( wavfile, 'rb')
@@ -295,5 +304,9 @@ add_song_menu.add_command(label="Add multiple songs", command=add_mul_song)
 volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 0.5, command=volume, length=125)
 volume_slider.pack(pady=10)
 
+
+
 root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()
+for p in Path("songs/").glob("graph*.wav"):
+	p.unlink()
