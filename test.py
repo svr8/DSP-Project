@@ -2,224 +2,41 @@ from tkinter import *
 import pygame
 from tkinter import filedialog
 import tkinter.ttk as ttk
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-import wave
+from tkinter import messagebox
+
 import numpy as np
 import matplotlib.pyplot as plt
-import struct
-
 import librosa
 import librosa.display
 import soundfile as sf
+
 import pyaudio
-
-
-plt.ion()
+import struct
+import wave
+from matplotlib import pyplot
+from os import path
+import os
 
 root = Tk()
 root.title('Vocal Extractor')
 
 pygame.mixer.init()
 
-def clipInt16( x ):    
-  # Clipping for 16 bits
-  if x > 32767:
-    x = 32767
-  elif x < -32768:
-    x = -32768
-  else:
-    x = x        
-  return int(x)
-
-
-class FilteredSignal:
-	def __init__(self, signal, sample_rate, label):
-		self.sig = signal
-
-		filename = f'output/{label}.wav'
-		sf.write(f'output/{label}.wav', signal, sample_rate, 'PCM_24')
-
-		self.RATE = sample_rate
-
-		wf = wave.open(filename, 'rb')
-		self.WIDTH = wf.getsampwidth()
-		self.LEN = wf.getnframes()
-		self.CHANNELS = wf.getnchannels()
-		self.label = label
-
-		wf.close()
-	
-def filter_audio(filename):
-	y, sr = librosa.load(filename, duration=120)
-
-	start = 0
-	end = 25
-
-	# And compute the spectrogram magnitude and phase
-	S_full, phase = librosa.magphase(librosa.stft(y))
-
-	# Play back a 5-second excerpt with vocals
-	# Audio(data=y[start*sr:end*sr], rate=sr)
-
-	idx = slice(*librosa.time_to_frames([start, end], sr=sr))
-	# fig, ax = plt.subplots()
-	# img = librosa.display.specshow(librosa.amplitude_to_db(S_full[:, idx], ref=np.max),
-							#  y_axis='log', x_axis='time', sr=sr, ax=ax)
-	# fig.colorbar(img, ax=ax)
-
-	# We'll compare frames using cosine similarity, and aggregate similar frames
-	# by taking their (per-frequency) median value.
-	#
-	# To avoid being biased by local continuity, we constrain similar frames to be
-	# separated by at least 2 seconds.
-	#
-	# This suppresses sparse/non-repetetitive deviations from the average spectrum,
-	# and works well to discard vocal elements.
-	S_filter = librosa.decompose.nn_filter(S_full,
-										aggregate=np.median,
-										metric='cosine',
-										width=int(librosa.time_to_frames(2, sr=sr)))
-
-	# The output of the filter shouldn't be greater than the input
-	# if we assume signals are additive.  Taking the pointwise minimum
-	# with the input spectrum forces this.
-	S_filter = np.minimum(S_full, S_filter)
-
-	# We can also use a margin to reduce bleed between the vocals and instrumentation masks.
-	# Note: the margins need not be equal for foreground and background separation
-	margin_i, margin_v = 2, 10
-	power = 2
-
-	mask_i = librosa.util.softmask(S_filter,
-								margin_i * (S_full - S_filter),
-								power=power)
-
-	mask_v = librosa.util.softmask(S_full - S_filter,
-								margin_v * S_filter,
-								power=power)
-
-	# Once we have the masks, simply multiply them with the input spectrum
-	# to separate the components
-
-	S_foreground = mask_v * S_full
-	S_background = mask_i * S_full
-
-	y_foreground = librosa.istft(S_foreground * phase)
-	# Play back a 5-second excerpt with vocals
-	# Audio(data=y_foreground[start*sr:end*sr], rate=sr)
-
-	y_background = librosa.istft(S_background * phase)
-	# Play back a 5-second excerpt with instrumentals
-	# Audio(data=y_background[start*sr:end*sr], rate=sr)
-
-	background_signal = FilteredSignal(y_background, sr, 'background')
-	foreground_signal = FilteredSignal(y_foreground, sr, 'foreground')
-
-	return foreground_signal, background_signal
-
-def generate_audio_plot(sig, sample_rate):
-
-	fig = plt.figure(1)
-
-	# adding the energy subplot
-	plot_a = fig.add_subplot(211)
-	plot_a.plot(sig)
-	plot_a.set_xlabel('sample rate * time')
-	plot_a.set_ylabel('energy')
-
-	# adding the frequency subplot
-	plot_b = plt.subplot(212)
-	plot_b.specgram(sig, NFFT=1024, Fs=sample_rate, noverlap=900)
-	plot_b.set_xlabel('Time')
-	plot_b.set_ylabel('Frequency')
-
-	# create wrapper frame
-	wrapper_frame = Frame(root)
-	wrapper_frame.pack(pady=20)
-
-	# creating the Tkinter canvas
-	# containing the Matplotlib figure
-	canvas = FigureCanvasTkAgg(fig,
-							master = wrapper_frame)
-	
-	canvas.draw()
-
-	# placing the toolbar on the Tkinter window
-	canvas.get_tk_widget().grid(row=0, column=0)
-
-	plt.ioff()
-
-def plot_and_play_filteredaudio(filteredAudio):
-
-	print('lala1')
-	BLOCKLEN = 64
-	fig = plt.figure(1)
-	plot_sig = fig.add_subplot(211)
-	[g1] = plot_sig.plot([], [])
-
-	g1.set_xdata(range(BLOCKLEN))
-	plt.ylim(-32000, 32000)
-	plt.xlim(0, BLOCKLEN)
-
-	# Open the audio output stream
-	p = pyaudio.PyAudio()
-
-	PA_FORMAT = p.get_format_from_width(filteredAudio.WIDTH)
-	stream = p.open(
-		format = PA_FORMAT,
-		channels = filteredAudio.CHANNELS,
-		rate = filteredAudio.RATE,
-		input = False,
-		output = True,
-		frames_per_buffer = 256)      # low latency so that plot and output audio are synchronized
-
-	print('lala2')
-	sliding_window_start = 0
-	sliding_window_end = BLOCKLEN
-	audio_output_format = 'h'*BLOCKLEN
-	
-	print('shape', filteredAudio.sig.shape)
-
-	while sliding_window_end < filteredAudio.LEN:
-		print('lala3')
-
-		# block_data = filteredAudio.sig[sliding_window_start:sliding_window_end]
-		g1.set_ydata(filteredAudio.sig[sliding_window_start:sliding_window_end])
-
-		print('lala4')
-		
-		# outputList = []
-		# for i in range(sliding_window_start, sliding_window_end):
-		# 	outputList.append(clipInt16(filteredAudio.sig[i]))
-		# print('lala5')
-		
-		# output_bytes = struct.pack('h'*BLOCKLEN, *outputList)
-		print('lala6')
-
-		# stream.write(output_bytes, BLOCKLEN)
-		print('lala7')
-
-		sliding_window_start += BLOCKLEN
-		sliding_window_end += BLOCKLEN
-
-		# plt.pause(0.0001)
-
-	
-	stream.stop_stream()
-	stream.close()
-	p.terminate()
-
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        root.destroy()
+        root.quit()
+        os._exit(0)
 
 def add_song():
-	song = filedialog.askopenfilename(initialdir='songs/', title="Choose a song", filetypes=(("mp3 Files", "*.mp3"), ("WAV Files", "*.wav")))
+	song = filedialog.askopenfilename(initialdir='songs/', title="Choose a song", filetypes=(("WAV Files", "*.wav"), ))
 	song = song.split('/')[-1]
 	
 	if song not in listbox.get(0, "end"):
 		listbox.insert(END, song)
 
 def add_mul_song():
-	songs = filedialog.askopenfilenames(initialdir='songs/', title="Choose a song", filetypes=(("mp3 Files", "*.mp3"), ("WAV Files", "*.wav")))
+	songs = filedialog.askopenfilenames(initialdir='songs/', title="Choose a song", filetypes=(("WAV Files", "*.wav"), ))
 	for song in songs:
 		song = song.split('/')[-1]
 		if song not in listbox.get(0, "end"):
@@ -230,20 +47,62 @@ def play():
 	song = f'songs/{song}'
 
 	try:
-		foreground_sig, background_sig = filter_audio(song)
-		
-		filtered_filename = f'output/{foreground_sig.label}.wav'
-		# pygame.mixer.music.load(filtered_filename)
-		# pygame.mixer.music.play(loops=0)
-		# generate_audio_plot(foreground_sig.sig, foreground_sig.RATE)
-		plot_and_play_filteredaudio(foreground_sig)
-
+		pygame.mixer.music.load(song)
+		pygame.mixer.music.play(loops=0)
 	except FileNotFoundError:
 		print("Song not added")
 
 def stop():
 	pygame.mixer.music.stop()
 	listbox.selection_clear(ACTIVE)
+
+def extract():
+	song = listbox.get(ACTIVE)
+	song = f'songs/{song}'
+
+	y, sr = librosa.load(song)
+	S_full, phase = librosa.magphase(librosa.stft(y))
+
+	sf.write(song, y, sr)
+
+	S_filter = librosa.decompose.nn_filter(S_full,
+                                       aggregate=np.median,
+                                       metric='cosine',
+                                       width=int(librosa.time_to_frames(2, sr=sr)))
+	S_filter = np.minimum(S_full, S_filter)
+
+	margin_i, margin_v = 2, 10
+	power = 2
+
+	mask_i = librosa.util.softmask(S_filter,
+	                               margin_i * (S_full - S_filter),
+	                               power=power)
+
+	mask_v = librosa.util.softmask(S_full - S_filter,
+	                               margin_v * S_filter,
+	                               power=power)
+
+	S_foreground = mask_v * S_full
+	S_background = mask_i * S_full
+
+	y_foreground = librosa.istft(S_foreground * phase)
+	y_background = librosa.istft(S_background * phase)
+
+
+	vocal_file =  song[:-4] + '_vocals' +'.wav'
+	print(vocal_file)
+	sf.write(vocal_file, y_foreground, sr)
+
+	instr_file =  song[:-4] + '_instrumentals' + '.wav'
+	print(instr_file)
+	sf.write(instr_file, y_background, sr)
+
+	stop()
+
+	vocal_file = vocal_file.split('/')[-1]
+	instr_file = instr_file.split('/')[-1]
+	listbox.insert(END, vocal_file)
+	listbox.insert(END, instr_file)
 
 global paused
 paused = False
@@ -260,52 +119,131 @@ def pause(is_paused):
 		paused = True
 
 def volume(x):
-	pygame.mixer.music.set_volume(1 - volume_slider.get())
+	pygame.mixer.music.set_volume(volume_slider.get())
 	current_vol = pygame.mixer.music.get_volume()
 
-# initialize GUI root
+def graph():
+	songname = listbox.get(ACTIVE)
+	song = f'songs/{songname}'
+
+
+	if song[-4:] == '.mp3':
+		return
+
+	wavfile = f'songs/{songname}'
+	print('Name of wave file: %s' % wavfile)
+
+	# Open wave file
+	wf = wave.open( wavfile, 'rb')
+
+	# Read wave file properties
+	RATE        = wf.getframerate()     # Frame rate (frames/second)
+	WIDTH       = wf.getsampwidth()     # Number of bytes per sample
+	LEN         = wf.getnframes()       # Signal length
+	CHANNELS    = wf.getnchannels()     # Number of channels
+
+	print('The file has %d channel(s).'         % CHANNELS)
+	print('The file has %d frames/second.'      % RATE)
+	print('The file has %d frames.'             % LEN)
+	print('The file has %d bytes per sample.'   % WIDTH)
+
+	BLOCKLEN = 2000    # Blocksize
+
+	# Set up plotting...
+
+	pyplot.ion()           # Turn on interactive mode so plot gets updated
+
+	fig = pyplot.figure(1)
+
+	[g1] = pyplot.plot([], [])
+
+	g1.set_xdata(range(BLOCKLEN))
+	pyplot.ylim(-20000, 20000)
+	pyplot.xlim(0, BLOCKLEN)
+
+	# Open the audio output stream
+	p = pyaudio.PyAudio()
+
+	PA_FORMAT = p.get_format_from_width(WIDTH)
+	stream = p.open(
+	    format = PA_FORMAT,
+	    channels = CHANNELS,
+	    rate = RATE,
+	    input = False,
+	    output = True,
+	    frames_per_buffer = 256)      # low latency so that plot and output audio are synchronized
+
+	# Get block of samples from wave file
+	input_bytes = wf.readframes(BLOCKLEN)
+
+	while len(input_bytes) >= BLOCKLEN * WIDTH:
+
+	    # Convert binary data to number sequence (tuple)
+	    signal_block = struct.unpack('h' * BLOCKLEN, input_bytes)
+
+	    g1.set_ydata(signal_block)
+	    pyplot.pause(0.001)
+
+	    # Write binary data to audio output stream
+	    stream.write(input_bytes, BLOCKLEN)
+
+	    # Get block of samples from wave file
+	    input_bytes = wf.readframes(BLOCKLEN)
+
+	stream.stop_stream()
+	stream.close()
+	p.terminate()
+
+	wf.close()
+
+	pyplot.ioff()           # Turn off interactive mode
+	pyplot.show()           # Keep plot showing at end of program
+	pyplot.close()
+	print('* Finished')
+
 master_frame = Frame(root)
 master_frame.pack(pady=20)
 
-# add song list panel
 listbox = Listbox(master_frame, bg = "black", fg = "green", width = 60, selectbackground="gray", selectforeground="black")
 listbox.grid(row=0, column=0)
 
-# load assets
 play_btn_img = PhotoImage(file='images/rsz_play.png')
 pause_btn_img = PhotoImage(file='images/rsz_pause.png')
 stop_btn_img = PhotoImage(file='images/rsz_stop.png')
 vol_btn_img = PhotoImage(file='images/rsz_vol.png')
+vocal_btn_img = PhotoImage(file='images/rsz_mic.png')
+graph_btn_img = PhotoImage(file='images/rsz_graph.png')
 
-# add volume slider
+
 volume_frame = LabelFrame(master_frame, text="Volume")
 volume_frame.grid(row = 0, column=1, padx = 20)
 
-# add audio control panel
 controls_frame = Frame(master_frame)
 controls_frame.grid(row=1, column=0)
 
-# add buttons in audio control panel
+
 play_btn = Button(controls_frame, image = play_btn_img, borderwidth = 0, command=play)
-play_btn.grid(row=0, column=0, padx=10)
-
 pause_btn = Button(controls_frame, image = pause_btn_img, borderwidth = 0, command = lambda: pause(paused))
-pause_btn.grid(row=0, column=1, padx=10)
-
 stop_btn = Button(controls_frame, image = stop_btn_img, borderwidth = 0, command = stop)
-stop_btn.grid(row=0, column=2, padx=10)
+vocal_btn = Button(controls_frame, image = vocal_btn_img, borderwidth = 0, command = extract)
+graph_btn = Button(controls_frame, image = graph_btn_img, borderwidth=0, command = graph)
 
-# add application menu
+play_btn.grid(row=0, column=0, padx=10)
+pause_btn.grid(row=0, column=1, padx=10)
+stop_btn.grid(row=0, column=2, padx=10)
+vocal_btn.grid(row=0, column=3, padx=10)
+graph_btn.grid(row=0, column=4, padx=10)
+
 my_menu = Menu(root)
 root.config(menu=my_menu)
 
-# add song menu
 add_song_menu = Menu(my_menu)
 my_menu.add_cascade(label= "Add songs", menu = add_song_menu)
 add_song_menu.add_command(label="Add a song", command=add_song)
 add_song_menu.add_command(label="Add multiple songs", command=add_mul_song)
 
-# configure volume slider
-volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 0.5, command=volume, length=125)
+volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 1, command=volume, length=125)
 volume_slider.pack(pady=10)
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 root.mainloop()
