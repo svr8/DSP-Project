@@ -121,10 +121,15 @@ def extract():
 	stop()
 
 	# load the processed audio files in the application
-	vocal_file = vocal_file.split('/')[-1]
-	instr_file = instr_file.split('/')[-1]
-	listbox.insert(END, vocal_file)
-	listbox.insert(END, instr_file)
+	# vocal_file = vocal_file.split('/')[-1]
+	# instr_file = instr_file.split('/')[-1]
+	# listbox.insert(END, vocal_file)
+	# listbox.insert(END, instr_file)
+	if vocal_file not in listbox.get(0, "end"):
+		listbox.insert(END, vocal_file)
+	
+	if instr_file not in listbox.get(0, "end"):
+		listbox.insert(END, instr_file)
 
 global paused
 paused = False
