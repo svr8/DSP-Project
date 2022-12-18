@@ -22,12 +22,20 @@ root.title('Vocal Extractor')
 
 pygame.mixer.init()
 
+'''
+on_closing
+	clears GUI and processes running inside it to 
+	exit the application in a clean manner
+'''
 def on_closing():
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
         root.destroy()
         root.quit()
         os._exit(0)
 
+'''
+	loads user-selected song
+'''
 def add_song():
 	song = filedialog.askopenfilename(initialdir='songs/', title="Choose a song", filetypes=(("WAV Files", "*.wav"), ))
 	song = song.split('/')[-1]
@@ -35,6 +43,9 @@ def add_song():
 	if song not in listbox.get(0, "end"):
 		listbox.insert(END, song)
 
+'''
+	loads multiple user-selected songs
+'''
 def add_mul_song():
 	songs = filedialog.askopenfilenames(initialdir='songs/', title="Choose a song", filetypes=(("WAV Files", "*.wav"), ))
 	for song in songs:
@@ -42,6 +53,9 @@ def add_mul_song():
 		if song not in listbox.get(0, "end"):
 			listbox.insert(END, song)
 
+'''
+	plays user-selected song
+'''
 def play():
 	song = listbox.get(ACTIVE)
 	song = f'songs/{song}'
@@ -52,17 +66,24 @@ def play():
 	except FileNotFoundError:
 		print("Song not added")
 
+'''
+	stops playing currently playing song
+'''
 def stop():
 	pygame.mixer.music.stop()
 	listbox.selection_clear(ACTIVE)
 
+'''
+	runs audio processor on the user-selected song;
+	extracts vocal and instrumental music separately and
+	saves it to different files in the "songs/" directory
+'''
 def extract():
 	song = listbox.get(ACTIVE)
 	song = f'songs/{song}'
 
 	y, sr = librosa.load(song)
 	S_full, phase = librosa.magphase(librosa.stft(y))
-
 	sf.write(song, y, sr)
 
 	S_filter = librosa.decompose.nn_filter(S_full,
@@ -99,6 +120,7 @@ def extract():
 
 	stop()
 
+	# load the processed audio files in the application
 	vocal_file = vocal_file.split('/')[-1]
 	instr_file = instr_file.split('/')[-1]
 	listbox.insert(END, vocal_file)
@@ -107,6 +129,9 @@ def extract():
 global paused
 paused = False
 
+'''
+	pauses the currenly playing song
+'''
 def pause(is_paused):
 	global paused
 	paused = is_paused
@@ -118,14 +143,19 @@ def pause(is_paused):
 		pygame.mixer.music.pause()
 		paused = True
 
+'''
+	handles update in volume using volume-slider
+'''
 def volume(x):
-	pygame.mixer.music.set_volume(volume_slider.get())
+	pygame.mixer.music.set_volume(1 - volume_slider.get())
 	current_vol = pygame.mixer.music.get_volume()
 
+'''
+	plot the selected sound track in real-time
+'''
 def graph():
 	songname = listbox.get(ACTIVE)
 	song = f'songs/{songname}'
-
 
 	if song[-4:] == '.mp3':
 		return
@@ -201,12 +231,15 @@ def graph():
 	pyplot.close()
 	print('* Finished')
 
+# initialize GUI roo
 master_frame = Frame(root)
 master_frame.pack(pady=20)
 
+# add song list panel
 listbox = Listbox(master_frame, bg = "black", fg = "green", width = 60, selectbackground="gray", selectforeground="black")
 listbox.grid(row=0, column=0)
 
+# load assets
 play_btn_img = PhotoImage(file='images/rsz_play.png')
 pause_btn_img = PhotoImage(file='images/rsz_pause.png')
 stop_btn_img = PhotoImage(file='images/rsz_stop.png')
@@ -214,35 +247,47 @@ vol_btn_img = PhotoImage(file='images/rsz_vol.png')
 vocal_btn_img = PhotoImage(file='images/rsz_mic.png')
 graph_btn_img = PhotoImage(file='images/rsz_graph.png')
 
-
+# add volume slider
 volume_frame = LabelFrame(master_frame, text="Volume")
 volume_frame.grid(row = 0, column=1, padx = 20)
 
+# add audio control panel
 controls_frame = Frame(master_frame)
 controls_frame.grid(row=1, column=0)
 
-
+# add buttons in audio control panel
+# play button
 play_btn = Button(controls_frame, image = play_btn_img, borderwidth = 0, command=play)
-pause_btn = Button(controls_frame, image = pause_btn_img, borderwidth = 0, command = lambda: pause(paused))
-stop_btn = Button(controls_frame, image = stop_btn_img, borderwidth = 0, command = stop)
-vocal_btn = Button(controls_frame, image = vocal_btn_img, borderwidth = 0, command = extract)
-graph_btn = Button(controls_frame, image = graph_btn_img, borderwidth=0, command = graph)
-
 play_btn.grid(row=0, column=0, padx=10)
+
+# pause button
+pause_btn = Button(controls_frame, image = pause_btn_img, borderwidth = 0, command = lambda: pause(paused))
 pause_btn.grid(row=0, column=1, padx=10)
+
+# stop button
+stop_btn = Button(controls_frame, image = stop_btn_img, borderwidth = 0, command = stop)
 stop_btn.grid(row=0, column=2, padx=10)
+
+# vocal extraction button
+vocal_btn = Button(controls_frame, image = vocal_btn_img, borderwidth = 0, command = extract)
 vocal_btn.grid(row=0, column=3, padx=10)
+
+# audio visualizer button
+graph_btn = Button(controls_frame, image = graph_btn_img, borderwidth=0, command = graph)
 graph_btn.grid(row=0, column=4, padx=10)
 
+# add application menu
 my_menu = Menu(root)
 root.config(menu=my_menu)
 
+# add song menu
 add_song_menu = Menu(my_menu)
 my_menu.add_cascade(label= "Add songs", menu = add_song_menu)
 add_song_menu.add_command(label="Add a song", command=add_song)
 add_song_menu.add_command(label="Add multiple songs", command=add_mul_song)
 
-volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 1, command=volume, length=125)
+# configure volume slider
+volume_slider = ttk.Scale(volume_frame, from_ = 0, to = 1, orient= VERTICAL, value = 0.5, command=volume, length=125)
 volume_slider.pack(pady=10)
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
