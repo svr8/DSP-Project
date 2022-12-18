@@ -21,7 +21,7 @@
 </div>
 
 <p align="center">
-    <img src="images/demo.png" alt="Logo" width="400" height="300">
+    <img src="images/demo.png" alt="Logo" width="550" height="380">
 </p>
 
 ## About The Project
@@ -57,21 +57,21 @@ Python | [Official Page](https://www.python.org/downloads/)
 ### Load Songs
 
 <p align="center">
-    <img src="images/load-song.png" alt="Logo" width="300" height="250">
+    <img src="images/load-song.png" alt="Logo" width="550" height="380">
 </p>
 In the application menu, go to `Add Songs > Add a song` to open the file chooser pop-up. Select the file present on your computer to load it in the application. Intuitively, you can choose `Add Songs > Add multiple songs` to load multiple audio files.
 
 ### Audio Control
 
 <p align="center">
-    <img src="images/play-song.png" alt="Logo" width="300" height="250">
+    <img src="images/play-song.png" alt="Logo" width="550" height="380">
 </p>
 You can use the intuitive control buttons to play, pause, and, stop playing the songs. The slider on the right can be used to adjust the playback volume.
 
 ### Extract Vocals and Instrumentals
 
 <p align="center">
-    <img src="images/extract-song.png" alt="Logo" width="300" height="250">
+    <img src="images/extract-song.png" alt="Logo" width="550" height="380">
 </p>
 First, click on the audio track that you want to process. Next, click on the microphone icon to extract vocals and instrumentals of the selected audio file in separate files.
 
@@ -82,7 +82,7 @@ These audio tracks would be loaded in the application directly after processing.
 ### Real-Time Audio Visualization
 
 <p align="center">
-    <img src="images/plot-song.png" alt="Logo" width="300" height="250">
+    <img src="images/plot-song.png" alt="Logo" width="550" height="380">
 </p>
 Click the wave icon to visualize audio frequency in real-time.
 
