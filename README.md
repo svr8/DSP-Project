@@ -7,15 +7,16 @@
     <img src="https://librosa.org/doc/latest/_static/librosa_logo_text.svg" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Vocal Extractor: A DSP Project</h3>
+<h3 align="center">Vocals Extractor: A DSP Project</h3>
   <p align="center">
     Extract vocals and instrumentals of a song at the click of a button
     <br />
-    <a href="https://drive.google.com/file/d/1NaNKkEdYKNhGhpdXshHNmKx5E4dn139A/view?usp=share_link"><strong><u>View Live Demo »</u></strong></a>
+    <a href="https://youtu.be/VGyLdro8hwc"><strong><u>View Live Demo »</u></strong></a> | <a href="https://github.com/svr8/DSP-Project"><strong><u>View Source Code »</u></strong></a>
     <br />
     <a href="mailto:si2152@nyu.edu">Siddhanth Iyer (si2152)</a>
     ·
     <a href="mailto:sv2270@nyu.edu">Shikhar Vaish (sv2270)</a>
+    
   </p>
 </div>
 
