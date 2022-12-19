@@ -11,8 +11,7 @@
   <p align="center">
     Extract vocals and instrumentals of a song at the click of a button
     <br />
-    <!-- TODO update demo link -->
-    <a href="https://docs.rehost.in/#/getting-started/quickstart"><strong><u>View Live Demo »</u></strong></a>
+    <a href="https://drive.google.com/file/d/1NaNKkEdYKNhGhpdXshHNmKx5E4dn139A/view?usp=share_link"><strong><u>View Live Demo »</u></strong></a>
     <br />
     <a href="mailto:si2152@nyu.edu">Siddhanth Iyer (si2152)</a>
     ·
