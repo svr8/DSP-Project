@@ -90,13 +90,66 @@ Click the wave icon to visualize audio frequency in real-time.
 
 ### Audio Extraction
 
-The application uses `librosa` library and applies 2 different softmask filters on the audio data, for instrumental and vocals respectively.
+The application uses `librosa` library and begin with filtering audio signal by using nearest-neighbors filter. Each data point  is replaced by aggregating its nearest neighbors in feature space. This can be useful for de-noising a spectrogram or feature matrix.
 
-The final output is processed and saved in different files.
+```
+S_filter = librosa.decompose.nn_filter(S_full,
+                                       aggregate=np.median,
+                                       metric='cosine',
+                                       width=int(librosa.time_to_frames(2, sr=sr)))
+```
+
+
+Next, we apply 2 different softmask filters on the audio data, for instrumental and vocals respectively.
+
+```
+mask_i = librosa.util.softmask(S_filter,
+	                               margin_i * (S_full - S_filter),
+	                               power=power)
+
+	mask_v = librosa.util.softmask(S_full - S_filter,
+	                               margin_v * S_filter,
+	                               power=power)
+```
+
+Finally, we generate the processed audio signals when we apply Inverse short-time Fourier transform(ISTFT) on the filtered signals.
+
+```
+y_foreground = librosa.istft(S_foreground * phase)
+
+y_background = librosa.istft(S_background * phase)
+```
+
+Here, `y_foreground` contains the vocals and `y_background` contains the instrumentals. These signals are saved to new `.wav` files in the `/songs` directory with the suffixes `_vocals` and `_instrumentals`, respectively.
 
 ### Real-Time Audio Visualization
 
-The application uses `matplotlib` and a simple sliding window algorithm to load the binary data in blocks of fix sizes. These batches are passed to `pyaudio` stream connected that plays the audio to the output device meanwhile we get matplotlib to read the audio data and plot the signals in real-time.
+The application uses `matplotlib` and a simple sliding window algorithm to load the binary data in blocks of fix sizes. 
+
+Here, the `BLOCKSIZE` is set as `2000`. We can change this, as per the application requirement and use-case.
+
+Finally, we process the audio signal in batches and visualize, while playing the track, in real-time: 
+
+```
+# Get block of samples from wave file
+	input_bytes = wf.readframes(BLOCKLEN)
+
+	while len(input_bytes) >= BLOCKLEN * WIDTH:
+
+	    # Convert binary data to number sequence (tuple)
+	    signal_block = struct.unpack('h' * BLOCKLEN, input_bytes)
+
+	    g1.set_ydata(signal_block)
+	    pyplot.pause(0.001)
+
+	    # Write binary data to audio output stream
+	    stream.write(input_bytes, BLOCKLEN)
+
+	    # Get block of samples from wave file
+	    input_bytes = wf.readframes(BLOCKLEN)
+```
+
+These batches are passed to `pyaudio` stream connected that plays the audio to the output device meanwhile we get matplotlib to read the audio data and plot the signals in real-time.
 
 
 ## Authors
